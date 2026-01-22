@@ -29,7 +29,7 @@ Jan_26_grav_demo/
 python backend/main.py
 ```
 
-This writes `frontend/data.json`.
+This writes `backend/output/data.json`.
 
 2) View in browser (needs a simple web server for `fetch`):
 

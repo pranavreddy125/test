@@ -15,7 +15,7 @@ window.addEventListener("resize", () => {
 
 resizeCanvas();
 
-fetch("data.json")
+fetch("../backend/output/data.json")
   .then((response) => response.json())
   .then((data) => startPlayback(data))
   .catch((error) => {
