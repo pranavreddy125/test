@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physics Sandbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Space+Mono&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      min-height: 100vh;
+      background: radial-gradient(ellipse at bottom, #1b2838 0%, #090a0f 100%);
+      color: #e0e6ed;
+      overflow-x: hidden;
+    }
+
+    /* Starfield background */
+    .stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .star {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+      animation: twinkle var(--duration) ease-in-out infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: var(--opacity); transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 40px rgba(102, 126, 234, 0.5);
+      animation: glow 3s ease-in-out infinite;
+    }
+
+    @keyframes glow {
+      0%, 100% { filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.3)); }
+      50% { filter: drop-shadow(0 0 30px rgba(102, 126, 234, 0.6)); }
+    }
+
+    .subtitle {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #8892a0;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .panel {
+      background: rgba(15, 20, 30, 0.8);
+      border: 1px solid rgba(102, 126, 234, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+      box-shadow: 
+        0 4px 30px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      margin-bottom: 24px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .panel:hover {
+      border-color: rgba(102, 126, 234, 0.4);
+      box-shadow: 
+        0 4px 40px rgba(102, 126, 234, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .panel-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: #667eea;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title::before {
+      content: '';
+      display: block;
+      width: 8px;
+      height: 8px;
+      background: #667eea;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #667eea;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.8); }
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+    }
+
+    .controls-2x3 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .control-group label {
+      font-size: 0.75rem;
+      color: #8892a0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .control-group input,
+    .control-group select {
+      padding: 12px 16px;
+      font-size: 0.95rem;
+      font-family: 'Space Mono', monospace;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(102, 126, 234, 0.2);
+      border-radius: 8px;
+      color: #e0e6ed;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .control-group input:focus,
+    .control-group select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .control-group input:hover,
+    .control-group select:hover {
+      border-color: rgba(102, 126, 234, 0.4);
+    }
+
+    .control-group select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23667eea' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 40px;
+    }
+
+    .control-group select option {
+      background: #0f141e;
+      color: #e0e6ed;
+    }
+
+    .btn-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    button {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 16px 48px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      border-radius: 50px;
+      color: #fff;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(102, 126, 234, 0.6);
+    }
+
+    button:hover:not(:disabled)::before {
+      left: 100%;
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+      box-shadow: none;
+    }
+
+    button.running {
+      animation: buttonPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes buttonPulse {
+      0%, 100% { box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4); }
+      50% { box-shadow: 0 4px 30px rgba(102, 126, 234, 0.7); }
+    }
+
+    #error {
+      color: #f56565;
+      background: rgba(245, 101, 101, 0.1);
+      border: 1px solid rgba(245, 101, 101, 0.3);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+
+    #error.visible {
+      display: block;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .canvas-container {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      background: #000;
+    }
+
+    .frame-info {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.8);
+      background: rgba(0, 0, 0, 0.6);
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(102, 126, 234, 0.3);
+      backdrop-filter: blur(5px);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .frame-info.visible {
+      opacity: 1;
+    }
+
+    .coords-info {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(0, 0, 0, 0.6);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(102, 126, 234, 0.2);
+      backdrop-filter: blur(5px);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .coords-info.visible {
+      opacity: 1;
+    }
+
+    .coords-info span {
+      color: #667eea;
+    }
+
+    /* Loading spinner for button */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Fun fact section */
+    .fun-fact {
+      background: linear-gradient(135deg, rgba(15, 20, 30, 0.9) 0%, rgba(20, 30, 50, 0.8) 100%);
+      border-color: rgba(74, 222, 128, 0.3);
+    }
+
+    .fun-fact:hover {
+      border-color: rgba(74, 222, 128, 0.5);
+      box-shadow: 
+        0 4px 40px rgba(74, 222, 128, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .fun-fact .panel-title {
+      color: #4ade80;
+    }
+
+    .fun-fact .panel-title::before {
+      background: #4ade80;
+      box-shadow: 0 0 10px #4ade80;
+    }
+
+    .fun-fact-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .fun-fact-header .panel-title {
+      margin-bottom: 0;
+    }
+
+    .next-fact-btn {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 8px 16px;
+      background: rgba(74, 222, 128, 0.15);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      border-radius: 20px;
+      color: #4ade80;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+    }
+
+    .next-fact-btn:hover {
+      background: rgba(74, 222, 128, 0.25);
+      border-color: rgba(74, 222, 128, 0.6);
+      box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .next-fact-btn:active {
+      transform: translateY(0);
+    }
+
+    .fun-fact-content {
+      line-height: 1.8;
+      font-size: 0.95rem;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .fun-fact-content.fade-out {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+
+    .fun-fact-content.fade-in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .fun-fact-content p {
+      margin-bottom: 16px;
+    }
+
+    .fun-fact-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .fun-fact-content strong {
+      color: #4ade80;
+    }
+
+    .fun-fact-content em {
+      color: #fbbf24;
+      font-style: normal;
+    }
+
+    .fun-fact-footer {
+      padding-top: 16px;
+      border-top: 1px solid rgba(74, 222, 128, 0.2);
+      color: #8892a0;
+      font-size: 0.9rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.8rem;
+      }
+      
+      .controls {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      button {
+        width: 100%;
+        padding: 14px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars" id="stars"></div>
+  
+  <div class="container">
+    <header>
+      <h1>Physics Sandbox</h1>
+      <p class="subtitle">Orbital Mechanics Simulator</p>
+    </header>
+    
+    <div id="error"></div>
+    
+    <div class="panel">
+      <div class="panel-title">Configuration</div>
+      <div class="controls controls-2x3">
+        <div class="control-group full-width">
+          <label for="starType">Star Type</label>
+          <select id="starType">
+            <option value="">Loading...</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label for="initialX">Starting X Position</label>
+          <input type="text" id="initialX" value="1">
+        </div>
+        
+        <div class="control-group">
+          <label for="initialY">Starting Y Position</label>
+          <input type="text" id="initialY" value="0">
+        </div>
+        
+        <div class="control-group">
+          <label for="initialVx">X Velocity</label>
+          <input type="text" id="initialVx" value="0">
+        </div>
+        
+        <div class="control-group">
+          <label for="initialVy">Y Velocity</label>
+          <input type="text" id="initialVy" value="1">
+        </div>
+        
+        <div class="control-group">
+          <label for="dt">Time Step</label>
+          <input type="text" id="dt" value="0.01">
+        </div>
+        
+        <div class="control-group">
+          <label for="steps">Simulation Steps</label>
+          <input type="text" id="steps" value="1000">
+        </div>
+        
+        <div class="control-group full-width btn-container">
+          <button id="runBtn">
+            <span class="btn-text">Launch Simulation</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-title">Simulation View</div>
+      <div class="canvas-container">
+        <canvas id="canvas" width="800" height="800"></canvas>
+        <div class="frame-info" id="frameInfo">Frame: 0 / 0</div>
+        <div class="coords-info" id="coordsInfo">
+          X: <span id="coordX">0.00</span> | Y: <span id="coordY">0.00</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel fun-fact">
+      <div class="fun-fact-header">
+        <div class="panel-title" id="funFactTitle">✨ Fun Fact</div>
+        <button class="next-fact-btn" id="nextFactBtn">Next Fact →</button>
+      </div>
+      <div class="fun-fact-content" id="funFactContent">
+        <!-- Content loaded by JavaScript -->
+      </div>
+    </div>
+    
+    <script>
+      const funFacts = [
+        {
+          title: "✨ The Goldilocks Zone",
+          content: `
+            <p>
+              The <strong>habitable zone</strong>, often called the "Goldilocks Zone," is the region around a star where 
+              conditions are <em>just right</em> for liquid water to exist on a planet's surface — not too hot, not too cold.
+            </p>
+            <p>
+              Out of the <strong>5,000+ exoplanets</strong> discovered so far, only about <strong>60</strong> are considered 
+              potentially habitable — that's roughly <strong>1.2%</strong>. And of those, even fewer are rocky planets 
+              similar in size to Earth. Finding a planet in the Goldilocks Zone is like finding a needle in a cosmic haystack!
+            </p>
+            <p class="fun-fact-footer">
+              🌍 Earth sits comfortably in our Sun's habitable zone — one of the many reasons life thrives here.
+            </p>
+          `
+        },
+        {
+          title: "🌟 Star Types & Habitable Zones",
+          content: `
+            <p>
+              The size of a star's habitable zone depends on how <strong>hot and bright</strong> the star is. 
+              A massive <em>blue giant</em> has a habitable zone much farther out than our Sun's, while a 
+              small <em>red dwarf</em> has one that's incredibly close to the star itself.
+            </p>
+            <p>
+              <strong>Red dwarfs</strong> make up about <strong>70%</strong> of all stars in our galaxy, and planets 
+              in their habitable zones are so close that they often become <em>tidally locked</em> — one side always 
+              facing the star in eternal day, the other in permanent night!
+            </p>
+            <p class="fun-fact-footer">
+              🔴 TRAPPIST-1, a famous red dwarf, has 7 Earth-sized planets — 3 of which are in its habitable zone.
+            </p>
+          `
+        },
+        {
+          title: "🪐 Orbital Mechanics Magic",
+          content: `
+            <p>
+              Planets don't orbit in perfect circles — they follow <strong>elliptical paths</strong> described by 
+              Kepler's laws of planetary motion. This means a planet's distance from its star changes throughout 
+              its "year," affecting how much <em>heat and light</em> it receives.
+            </p>
+            <p>
+              Earth's orbit is nearly circular (eccentricity of just <strong>0.017</strong>), but some exoplanets 
+              have highly eccentric orbits that swing them in and out of their habitable zones — creating 
+              <em>extreme seasonal variations</em> we can barely imagine!
+            </p>
+            <p class="fun-fact-footer">
+              ☄️ Comet Halley has an eccentricity of 0.967 — almost a straight line back and forth!
+            </p>
+          `
+        },
+        {
+          title: "⏱️ Time Dilation Near Stars",
+          content: `
+            <p>
+              According to Einstein's theory of <strong>general relativity</strong>, time passes slower in stronger 
+              gravitational fields. A clock on the surface of a massive star would tick <em>measurably slower</em> 
+              than one floating in deep space.
+            </p>
+            <p>
+              Near a <strong>neutron star</strong>, gravity is so intense that time can slow by up to <strong>30%</strong>! 
+              And at the event horizon of a black hole, time would appear to stop completely from an outside observer's 
+              perspective — though you'd experience it normally as you fell in.
+            </p>
+            <p class="fun-fact-footer">
+              ⏰ GPS satellites must account for time dilation — without corrections, GPS would drift by ~10 km/day!
+            </p>
+          `
+        },
+        {
+          title: "🌊 Tidal Forces & Moons",
+          content: `
+            <p>
+              The same gravitational forces that create ocean tides on Earth can <strong>tear apart</strong> objects 
+              that get too close to massive bodies. This boundary is called the <em>Roche limit</em> — cross it, and 
+              you'll be shredded into a ring system!
+            </p>
+            <p>
+              Saturn's famous rings exist within its Roche limit, made of particles that can never coalesce into a moon. 
+              Meanwhile, Jupiter's moon <strong>Io</strong> is so tidally stressed by Jupiter's gravity that it has 
+              over <strong>400 active volcanoes</strong> — the most geologically active body in our solar system!
+            </p>
+            <p class="fun-fact-footer">
+              🌙 Earth's Moon is slowly drifting away at 3.8 cm per year due to tidal energy transfer.
+            </p>
+          `
+        },
+        {
+          title: "💫 Binary Star Systems",
+          content: `
+            <p>
+              More than <strong>half of all stars</strong> in our galaxy are part of binary or multiple star systems! 
+              Planets orbiting two suns (like Tatooine in Star Wars) are called <em>circumbinary planets</em>, and 
+              we've actually discovered several of them.
+            </p>
+            <p>
+              The habitable zone in a binary system is incredibly complex — it can shift, wobble, and even have 
+              <strong>gaps</strong> where stable orbits are impossible. Yet somehow, nature finds a way, and these 
+              alien worlds experience <em>double sunsets</em> every evening.
+            </p>
+            <p class="fun-fact-footer">
+              ☀️☀️ Kepler-16b was the first confirmed circumbinary planet, orbiting two stars 200 light-years away.
+            </p>
+          `
+        }
+      ];
+
+      // Track current fact index
+      let currentFactIndex = Math.floor(Math.random() * funFacts.length);
+
+      // Function to display a fact
+      function displayFact(index) {
+        const fact = funFacts[index];
+        document.getElementById('funFactTitle').textContent = fact.title;
+        document.getElementById('funFactContent').innerHTML = fact.content;
+      }
+
+      // Display initial random fact
+      displayFact(currentFactIndex);
+
+      // Add click handler for Next Fact button with animation
+      document.getElementById('nextFactBtn').addEventListener('click', function() {
+        const content = document.getElementById('funFactContent');
+        const title = document.getElementById('funFactTitle');
+        
+        // Fade out
+        content.classList.add('fade-out');
+        content.classList.remove('fade-in');
+        
+        setTimeout(() => {
+          // Update content
+          currentFactIndex = (currentFactIndex + 1) % funFacts.length;
+          displayFact(currentFactIndex);
+          
+          // Fade in
+          content.classList.remove('fade-out');
+          content.classList.add('fade-in');
+        }, 300);
+      });
+    </script>
+  </div>
+  
+  <script src="sandbox.js"></script>
+</body>
+</html>
