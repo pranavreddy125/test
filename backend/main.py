@@ -9,7 +9,7 @@ def main():
     steps = 800
     timeline = sim.run(steps)
     frames = [
-        [{"x": p["x"], "y": p["y"]} for p in snapshot["state"]["particles"]]
+        [{"x": p["x"], "y": p["y"]} for p in snapshot["particles"]]
         for snapshot in timeline
     ]
 
@@ -18,8 +18,8 @@ def main():
             "steps": steps,
             "dt": timeline[0]["dt"] if timeline else None,
             "t0": timeline[0]["t"] if timeline else None,
-            "central_mass": timeline[0]["state"]["central_mass"] if timeline else None,
-            "epsilon": timeline[0]["state"]["epsilon"] if timeline else None,
+            "central_mass": timeline[0]["star"]["mass"] if timeline else None,
+            "epsilon": timeline[0]["epsilon"] if timeline else None,
         },
         "frames": frames,
     }

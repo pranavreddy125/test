@@ -21,8 +21,8 @@ Jan_26_grav_demo/
 │   └── main.py
 │   └── output/
 ├── frontend/
-│   ├── index.html
-│   └── render.js
+│   ├── legacy/
+│   └── sandbox_/
 └── README.md
 ```
 
@@ -54,6 +54,16 @@ Example endpoints:
 
 - POST `http://localhost:8000/simulate`
 - GET `http://localhost:8000/presets`
+
+4) Run the frontend (Vite + React):
+
+```bash
+cd frontend/sandbox_
+npm install
+npm run dev
+```
+
+Open the URL printed by Vite (usually `http://localhost:5173`).
 
 ## Notes
 

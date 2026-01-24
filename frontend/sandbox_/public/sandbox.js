@@ -6,6 +6,12 @@ const initialVxInput = document.getElementById('initialVx');
 const initialVyInput = document.getElementById('initialVy');
 const dtInput = document.getElementById('dt');
 const stepsInput = document.getElementById('steps');
+const initialXValue = document.getElementById('initialXValue');
+const initialYValue = document.getElementById('initialYValue');
+const initialVxValue = document.getElementById('initialVxValue');
+const initialVyValue = document.getElementById('initialVyValue');
+const dtValue = document.getElementById('dtValue');
+const stepsValue = document.getElementById('stepsValue');
 const runBtn = document.getElementById('runBtn');
 const errorDiv = document.getElementById('error');
 const canvas = document.getElementById('canvas');
@@ -23,9 +29,71 @@ let habitableZone = null;
 let currentFrame = 0;
 let animationId = null;
 let isRunning = false;
+let defaultDt = null;
+let defaultSteps = null;
+
+const STAR_TYPE_LABELS = {
+  sun_like: 'Sun',
+  red_giant: 'Red Giant',
+  white_dwarf: 'White Dwarf'
+};
+
+const STAR_COLORS = {
+  sun_like: {
+    glowInner: 'rgba(255, 215, 0, 0.8)',
+    glowMid: 'rgba(255, 165, 0, 0.3)',
+    glowOuter: 'rgba(255, 100, 0, 0)',
+    coreInner: '#fff',
+    coreMid: '#FFD700',
+    coreOuter: '#FFA500'
+  },
+  red_giant: {
+    glowInner: 'rgba(255, 99, 71, 0.85)',
+    glowMid: 'rgba(220, 38, 38, 0.35)',
+    glowOuter: 'rgba(220, 38, 38, 0)',
+    coreInner: '#fff5f5',
+    coreMid: '#f87171',
+    coreOuter: '#dc2626'
+  },
+  white_dwarf: {
+    glowInner: 'rgba(255, 255, 255, 0.9)',
+    glowMid: 'rgba(226, 232, 240, 0.35)',
+    glowOuter: 'rgba(203, 213, 225, 0)',
+    coreInner: '#ffffff',
+    coreMid: '#e2e8f0',
+    coreOuter: '#cbd5e1'
+  }
+};
+
+const SLIDER_CONFIGS = {
+  sun_like: {
+    x: { min: 0.1, max: 2.0, step: 0.1 },
+    y: { min: 0.1, max: 2.0, step: 0.1 },
+    vx: { min: 0.0, max: 1.0, step: 0.1 },
+    vy: { min: 0.0, max: 1.0, step: 0.1 },
+    dt: { min: 0.02, max: 0.2, step: 0.02 },
+    steps: { min: 1000, max: 10000, step: 1000 }
+  },
+  red_giant: {
+    x: { min: 0.3, max: 3.0, step: 0.1 },
+    y: { min: 0.3, max: 3.0, step: 0.1 },
+    vx: { min: 0.0, max: 1.1, step: 0.1 },
+    vy: { min: 0.0, max: 1.1, step: 0.1 },
+    dt: { min: 0.015, max: 0.15, step: 0.015 },
+    steps: { min: 1000, max: 10000, step: 1000 }
+  },
+  white_dwarf: {
+    x: { min: 0.1, max: 1.5, step: 0.1 },
+    y: { min: 0.1, max: 1.5, step: 0.1 },
+    vx: { min: 0.0, max: 0.9, step: 0.1 },
+    vy: { min: 0.0, max: 0.9, step: 0.1 },
+    dt: { min: 0.025, max: 0.25, step: 0.025 },
+    steps: { min: 1000, max: 10000, step: 1000 }
+  }
+};
 
 // API base URL (adjust if needed)
-const API_BASE = '';
+const API_BASE = 'http://127.0.0.1:8000';
 
 // Generate starfield background
 function generateStars() {
@@ -57,6 +125,8 @@ async function init() {
     }
     presets = await response.json();
     populateStarTypes();
+    applyDefaultParameters();
+    handleStarTypeChange();
     clearError();
   } catch (err) {
     showError(`Error loading presets: ${err.message}`);
@@ -120,18 +190,37 @@ function populateStarTypes() {
   if (Array.isArray(presets)) {
     presets.forEach(preset => {
       const option = document.createElement('option');
-      option.value = preset.star_type || preset.name || preset;
-      option.textContent = preset.star_type || preset.name || preset;
+      const rawValue = preset.star_type || preset.name || preset;
+      option.value = rawValue;
+      option.textContent = STAR_TYPE_LABELS[rawValue] || rawValue;
       starTypeSelect.appendChild(option);
     });
   } else if (typeof presets === 'object') {
-    Object.keys(presets).forEach(key => {
+    const starTypes = presets.star_types || Object.keys(presets.stars || presets);
+    starTypes.forEach(key => {
       const option = document.createElement('option');
       option.value = key;
-      option.textContent = key;
+      option.textContent = STAR_TYPE_LABELS[key] || key;
       starTypeSelect.appendChild(option);
     });
   }
+}
+
+function applyDefaultParameters() {
+  if (!presets || typeof presets !== 'object') return;
+  const defaults = presets.default_parameters;
+  if (!defaults) return;
+
+  if (typeof defaults.dt === 'number') {
+    defaultDt = defaults.dt;
+    dtInput.value = String(defaults.dt);
+  }
+  if (typeof defaults.steps === 'number') {
+    defaultSteps = defaults.steps;
+    stepsInput.value = String(defaults.steps);
+  }
+
+  syncSliderDisplays();
 }
 
 function showError(message) {
@@ -156,6 +245,87 @@ function setRunning(running) {
     runBtn.classList.remove('running');
     btnText.textContent = 'Launch Simulation';
   }
+}
+
+function formatValue(value, decimals = 1) {
+  return Number(value).toFixed(decimals);
+}
+
+function syncSliderDisplays() {
+  initialXValue.textContent = formatValue(initialXInput.value, 1);
+  initialYValue.textContent = formatValue(initialYInput.value, 1);
+  initialVxValue.textContent = formatValue(initialVxInput.value, 1);
+  initialVyValue.textContent = formatValue(initialVyInput.value, 1);
+  dtValue.textContent = formatValue(dtInput.value, 2);
+  stepsValue.textContent = String(parseInt(stepsInput.value, 10));
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function applyConfigBounds(config) {
+  // Bounds are tuned per star type to keep simulations stable.
+  initialXInput.min = String(config.x.min);
+  initialXInput.max = String(config.x.max);
+  initialXInput.step = String(config.x.step);
+
+  initialYInput.min = String(config.y.min);
+  initialYInput.max = String(config.y.max);
+  initialYInput.step = String(config.y.step);
+
+  initialVxInput.min = String(config.vx.min);
+  initialVxInput.max = String(config.vx.max);
+  initialVxInput.step = String(config.vx.step);
+
+  initialVyInput.min = String(config.vy.min);
+  initialVyInput.max = String(config.vy.max);
+  initialVyInput.step = String(config.vy.step);
+
+  dtInput.min = String(config.dt.min);
+  dtInput.max = String(config.dt.max);
+  dtInput.step = String(config.dt.step);
+
+  stepsInput.min = String(config.steps.min);
+  stepsInput.max = String(config.steps.max);
+  stepsInput.step = String(config.steps.step);
+}
+
+function applyConfigDefaults(config) {
+  const xDefault = clamp(1.0, config.x.min, config.x.max);
+  const yDefault = clamp(0.1, config.y.min, config.y.max);
+  const vxDefault = clamp(0.0, config.vx.min, config.vx.max);
+  const vyDefault = clamp(1.0, config.vy.min, config.vy.max);
+  const dtDefault = clamp(
+    typeof defaultDt === 'number' ? defaultDt : config.dt.min,
+    config.dt.min,
+    config.dt.max
+  );
+  const stepsDefault = clamp(
+    typeof defaultSteps === 'number' ? defaultSteps : config.steps.min,
+    config.steps.min,
+    config.steps.max
+  );
+
+  initialXInput.value = String(xDefault);
+  initialYInput.value = String(yDefault);
+  initialVxInput.value = String(vxDefault);
+  initialVyInput.value = String(vyDefault);
+  dtInput.value = String(dtDefault);
+  stepsInput.value = String(Math.round(stepsDefault));
+
+  syncSliderDisplays();
+}
+
+function handleStarTypeChange() {
+  const config = SLIDER_CONFIGS[starTypeSelect.value];
+  if (!config) {
+    syncSliderDisplays();
+    return;
+  }
+
+  applyConfigBounds(config);
+  applyConfigDefaults(config);
 }
 
 async function runSimulation() {
@@ -194,17 +364,20 @@ async function runSimulation() {
     }
     
     const data = await response.json();
-    
-    // Handle response format - could be array directly or object with snapshots
+
+    // /simulate returns an array of snapshots
     if (Array.isArray(data)) {
       snapshots = data;
-      habitableZone = null;
-    } else if (data.snapshots) {
-      snapshots = data.snapshots;
-      habitableZone = data.habitable_zone || null;
     } else {
-      snapshots = [];
-      habitableZone = data.habitable_zone || null;
+      snapshots = data.snapshots || [];
+    }
+
+    habitableZone = snapshots[0]?.habitable_zone || null;
+
+    if (snapshots[0]) {
+      console.log('star', snapshots[0].star);
+      console.log('habitable_zone', snapshots[0].habitable_zone);
+      console.log('particle', snapshots[0].particles?.[0]);
     }
     
     if (snapshots.length > 0) {
@@ -227,8 +400,9 @@ function calculateScale() {
   let maxDist = 1;
   
   snapshots.forEach(snapshot => {
-    const x = snapshot.x || snapshot.position?.x || 0;
-    const y = snapshot.y || snapshot.position?.y || 0;
+    const particle = snapshot.particles?.[0];
+    const x = particle?.x ?? 0;
+    const y = particle?.y ?? 0;
     const dist = Math.sqrt(x * x + y * y);
     if (dist > maxDist) maxDist = dist;
   });
@@ -337,10 +511,12 @@ function drawFrame(frameIndex) {
       const prevSnapshot = snapshots[i - 1];
       const snapshot = snapshots[i];
       
-      const prevX = prevSnapshot.x ?? prevSnapshot.position?.x ?? 0;
-      const prevY = prevSnapshot.y ?? prevSnapshot.position?.y ?? 0;
-      const x = snapshot.x ?? snapshot.position?.x ?? 0;
-      const y = snapshot.y ?? snapshot.position?.y ?? 0;
+      const prevParticle = prevSnapshot.particles?.[0];
+      const particle = snapshot.particles?.[0];
+      const prevX = prevParticle?.x ?? 0;
+      const prevY = prevParticle?.y ?? 0;
+      const x = particle?.x ?? 0;
+      const y = particle?.y ?? 0;
       
       const prevPos = toCanvasCoords(prevX, prevY, scale);
       const pos = toCanvasCoords(x, y, scale);
@@ -358,15 +534,16 @@ function drawFrame(frameIndex) {
   
   // Draw star at origin with glow
   const starPos = toCanvasCoords(0, 0, scale);
+  const starStyle = STAR_COLORS[starTypeSelect.value] || STAR_COLORS.sun_like;
   
   // Star glow
   const starGlow = ctx.createRadialGradient(
     starPos.x, starPos.y, 0,
     starPos.x, starPos.y, 40
   );
-  starGlow.addColorStop(0, 'rgba(255, 215, 0, 0.8)');
-  starGlow.addColorStop(0.3, 'rgba(255, 165, 0, 0.3)');
-  starGlow.addColorStop(1, 'rgba(255, 100, 0, 0)');
+  starGlow.addColorStop(0, starStyle.glowInner);
+  starGlow.addColorStop(0.3, starStyle.glowMid);
+  starGlow.addColorStop(1, starStyle.glowOuter);
   
   ctx.fillStyle = starGlow;
   ctx.beginPath();
@@ -378,9 +555,9 @@ function drawFrame(frameIndex) {
     starPos.x, starPos.y, 0,
     starPos.x, starPos.y, 12
   );
-  starCore.addColorStop(0, '#fff');
-  starCore.addColorStop(0.5, '#FFD700');
-  starCore.addColorStop(1, '#FFA500');
+  starCore.addColorStop(0, starStyle.coreInner);
+  starCore.addColorStop(0.5, starStyle.coreMid);
+  starCore.addColorStop(1, starStyle.coreOuter);
   
   ctx.fillStyle = starCore;
   ctx.beginPath();
@@ -390,8 +567,9 @@ function drawFrame(frameIndex) {
   // Draw current planet position
   if (frameIndex < snapshots.length) {
     const snapshot = snapshots[frameIndex];
-    const x = snapshot.x ?? snapshot.position?.x ?? 0;
-    const y = snapshot.y ?? snapshot.position?.y ?? 0;
+    const particle = snapshot.particles?.[0];
+    const x = particle?.x ?? 0;
+    const y = particle?.y ?? 0;
     const planetPos = toCanvasCoords(x, y, scale);
     
     // Planet glow
@@ -446,6 +624,13 @@ function animate() {
 
 // Event listeners
 runBtn.addEventListener('click', runSimulation);
+starTypeSelect.addEventListener('change', handleStarTypeChange);
+initialXInput.addEventListener('input', syncSliderDisplays);
+initialYInput.addEventListener('input', syncSliderDisplays);
+initialVxInput.addEventListener('input', syncSliderDisplays);
+initialVyInput.addEventListener('input', syncSliderDisplays);
+dtInput.addEventListener('input', syncSliderDisplays);
+stepsInput.addEventListener('input', syncSliderDisplays);
 
 // Initialize
 init();

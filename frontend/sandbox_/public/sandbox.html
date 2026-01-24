@@ -157,6 +157,16 @@
       color: #8892a0;
       text-transform: uppercase;
       letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .control-group label .value {
+      color: #e0e6ed;
+      font-size: 0.8rem;
+      letter-spacing: 0.5px;
     }
 
     .control-group input,
@@ -182,6 +192,47 @@
     .control-group input:hover,
     .control-group select:hover {
       border-color: rgba(102, 126, 234, 0.4);
+    }
+
+    .control-group input[type="range"] {
+      padding: 0;
+      height: 36px;
+      background: transparent;
+      border: none;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      background: rgba(102, 126, 234, 0.25);
+      border-radius: 999px;
+    }
+
+    .control-group input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #667eea;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 10px rgba(102, 126, 234, 0.6);
+      margin-top: -6px;
+      cursor: pointer;
+    }
+
+    .control-group input[type="range"]::-moz-range-track {
+      height: 6px;
+      background: rgba(102, 126, 234, 0.25);
+      border-radius: 999px;
+    }
+
+    .control-group input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #667eea;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 10px rgba(102, 126, 234, 0.6);
+      cursor: pointer;
     }
 
     .control-group select {
@@ -491,38 +542,40 @@
         <div class="control-group full-width">
           <label for="starType">Star Type</label>
           <select id="starType">
-            <option value="">Loading...</option>
+            <option value="sun_like">Sun</option>
+            <option value="red_giant">Red Giant</option>
+            <option value="white_dwarf">White Dwarf</option>
           </select>
         </div>
         
         <div class="control-group">
-          <label for="initialX">Starting X Position</label>
-          <input type="text" id="initialX" value="1">
+          <label for="initialX">Starting X Position <span class="value" id="initialXValue">1.0</span></label>
+          <input type="range" id="initialX" min="0.1" max="2.0" step="0.1" value="1.0">
         </div>
         
         <div class="control-group">
-          <label for="initialY">Starting Y Position</label>
-          <input type="text" id="initialY" value="0">
+          <label for="initialY">Starting Y Position <span class="value" id="initialYValue">0.1</span></label>
+          <input type="range" id="initialY" min="0.1" max="2.0" step="0.1" value="0.1">
         </div>
         
         <div class="control-group">
-          <label for="initialVx">X Velocity</label>
-          <input type="text" id="initialVx" value="0">
+          <label for="initialVx">X Velocity <span class="value" id="initialVxValue">0.0</span></label>
+          <input type="range" id="initialVx" min="0.0" max="1.0" step="0.1" value="0.0">
         </div>
         
         <div class="control-group">
-          <label for="initialVy">Y Velocity</label>
-          <input type="text" id="initialVy" value="1">
+          <label for="initialVy">Y Velocity <span class="value" id="initialVyValue">1.0</span></label>
+          <input type="range" id="initialVy" min="0.0" max="1.0" step="0.1" value="1.0">
         </div>
         
         <div class="control-group">
-          <label for="dt">Time Step</label>
-          <input type="text" id="dt" value="0.01">
+          <label for="dt">Time Step <span class="value" id="dtValue">0.02</span></label>
+          <input type="range" id="dt" min="0.02" max="0.2" step="0.02" value="0.02">
         </div>
         
         <div class="control-group">
-          <label for="steps">Simulation Steps</label>
-          <input type="text" id="steps" value="1000">
+          <label for="steps">Simulation Steps <span class="value" id="stepsValue">1000</span></label>
+          <input type="range" id="steps" min="1000" max="10000" step="1000" value="1000">
         </div>
         
         <div class="control-group full-width btn-container">
