@@ -3,8 +3,9 @@ from typing import Any, Dict, List
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from derived_physics import derive_simulation_config
 from scenarios import DEFAULT_DT, DEFAULT_STEPS, build_simulator
-from star_presets import get_star_preset, list_star_presets
+from star_presets import list_star_presets
 
 app = FastAPI(title="Gravity Simulator API", version="0.1.0")
 from fastapi.middleware.cors import CORSMiddleware
@@ -35,19 +36,25 @@ class SimulateRequest(BaseModel):
 @app.post("/simulate")
 def simulate(request: SimulateRequest) -> List[Dict[str, Any]]:
     try:
-        star = get_star_preset(request.star_type)
+        derived = derive_simulation_config(
+            star_type=request.star_type,
+            x=request.x,
+            y=request.y,
+            vx=request.vx,
+            vy=request.vy,
+            dt=request.dt,
+            simulation_steps=request.steps,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    particle = {
-        "x": request.x,
-        "y": request.y,
-        "vx": request.vx,
-        "vy": request.vy,
-        "mass": None,
-    }
-    sim = build_simulator([particle], star=star, dt=request.dt)
-    return sim.run(request.steps)
+    sim = build_simulator(
+        derived["particles"],
+        star=derived["star"],
+        dt=derived["dt"],
+        epsilon=derived["epsilon"],
+    )
+    return sim.run(derived["steps"])
 
 
 @app.get("/presets")
