@@ -125,6 +125,8 @@ class Simulator:
         # TimeCrystal foundation: single authoritative loop.
         if steps is None and end_time is None:
             raise ValueError("Provide steps or end_time")
+        # Avoid silently accumulating prior runs on the same instance.
+        self.timeline = []
 
         if steps is None:
             end_time = float(end_time)

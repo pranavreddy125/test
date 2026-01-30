@@ -42,7 +42,7 @@ This writes `backend/output/data.json`.
 python -m http.server 8000
 ```
 
-Open `http://localhost:8000/frontend/index.html`.
+Open `http://localhost:8000/Jan_26_grav_demo/frontend/legacy/index.html`.
 
 3) Run the API (optional):
 
@@ -55,7 +55,7 @@ Example endpoints:
 - POST `http://localhost:8000/simulate`
 - GET `http://localhost:8000/presets`
 
-4) Run the frontend (Vite + React):
+4) Run the sandbox frontend (Vite + React):
 
 ```bash
 cd frontend/sandbox_
@@ -71,29 +71,26 @@ Open the URL printed by Vite (usually `http://localhost:5173`).
 - The frontend only reads and draws frames; it does no physics or stepping.
 - Output is a list of snapshot objects with time, star metadata, habitable zone, epsilon, and full particle state.
 
-## Snapshot Schema
+## Output Schema
 
-Each snapshot is a full, immutable state at time `t`:
+`backend/main.py` writes `backend/output/data.json` as:
 
 ```json
 {
-  "t": 0.0,
-  "dt": 0.02,
-  "star": {
-    "type_name": "sun_like",
-    "mass": 1.0,
-    "luminosity": 1.0
+  "meta": {
+    "steps": 800,
+    "dt": 0.02,
+    "t0": 0.0,
+    "central_mass": 1.0,
+    "epsilon": 0.01
   },
-  "habitable_zone": {
-    "r_inner": 0.95,
-    "r_outer": 1.37
-  },
-  "epsilon": 0.01,
-  "particles": [
-    { "x": 1.0, "y": 0.0, "vx": 0.0, "vy": 1.2, "mass": null }
+  "frames": [
+    [{ "x": 1.0, "y": 0.0 }]
   ]
 }
 ```
+
+If you need full snapshots (star + habitable zone + full particle state), run the API (`/simulate`) which returns full snapshot objects per step.
 
 ## API
 
